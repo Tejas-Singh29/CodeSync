@@ -1,13 +1,45 @@
 const express = require('express');
+require('dotenv').config();
 const app = express();
 const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 const ACTIONS = require('./src/Actions');
+const aiRouter = require('./server/routes/ai');
 
 const server = http.createServer(app);
 const io = new Server(server);
 
+const frontendOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
+app.use((req, res, next) => {
+    const requestOrigin = req.headers.origin;
+
+    if (requestOrigin === frontendOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', frontendOrigin);
+        res.setHeader('Vary', 'Origin');
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Access-Control-Max-Age', '600');
+    }
+
+    if (req.method === 'OPTIONS' && requestOrigin === frontendOrigin) {
+        return res.sendStatus(204);
+    }
+
+    return next();
+});
+
+app.use(express.json({ limit: '1mb' }));
+app.use((error, req, res, next) => {
+    if (error?.type === 'entity.parse.failed') {
+        return res.status(400).json({ error: 'Invalid JSON request body.' });
+    }
+    if (error?.type === 'entity.too.large') {
+        return res.status(413).json({ error: 'Request body is too large.' });
+    }
+    return next(error);
+});
+app.use('/api/ai', aiRouter);
 app.use(express.static('build'));
 app.use((req, res, next) => {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));

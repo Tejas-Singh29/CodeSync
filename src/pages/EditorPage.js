@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import ACTIONS from '../Actions';
 import Client from '../components/Client';
 import Editor from '../components/Editor';
+import AIAssistant from '../components/AIAssistant';
 import { initSocket } from '../socket';
 import {
     useLocation,
@@ -14,10 +15,12 @@ import {
 const EditorPage = () => {
     const socketRef = useRef(null);
     const codeRef = useRef(null);
+    const editorRef = useRef(null);
     const location = useLocation();
     const { roomId } = useParams();
     const reactNavigator = useNavigate();
     const [clients, setClients] = useState([]);
+    const [aiOpen, setAiOpen] = useState(false);
 
     useEffect(() => {
         const init = async () => {
@@ -92,7 +95,7 @@ const EditorPage = () => {
     }
 
     return (
-        <div className="mainWrap">
+        <div className={`mainWrap${aiOpen ? ' aiOpen' : ''}`}>
             <div className="aside">
                 <div className="asideInner">
                     <div className="logo">
@@ -118,6 +121,9 @@ const EditorPage = () => {
                 <button className="btn leaveBtn" onClick={leaveRoom}>
                     Leave
                 </button>
+                <button className="btn aiToggle" onClick={() => setAiOpen((open) => !open)}>
+                    {aiOpen ? 'Hide AI' : 'Open AI Assistant'}
+                </button>
             </div>
             <div className="editorWrap">
                 <Editor
@@ -126,8 +132,22 @@ const EditorPage = () => {
                     onCodeChange={(code) => {
                         codeRef.current = code;
                     }}
+                    onEditorReady={(editor) => {
+                        editorRef.current = editor;
+                    }}
                 />
             </div>
+            {aiOpen && (
+                <AIAssistant
+                    onClose={() => setAiOpen(false)}
+                    getEditorSnapshot={() => ({
+                        code: editorRef.current ? editorRef.current.getValue() : (codeRef.current || ''),
+                        selectedCode: editorRef.current?.getSelection() || '',
+                        cursor: editorRef.current?.getCursor() || null,
+                        language: 'JavaScript',
+                    })}
+                />
+            )}
         </div>
     );
 };

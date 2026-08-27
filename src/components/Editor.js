@@ -7,7 +7,7 @@ import 'codemirror/addon/edit/closetag';
 import 'codemirror/addon/edit/closebrackets';
 import ACTIONS from '../Actions';
 
-const Editor = ({ socketRef, roomId, onCodeChange }) => {
+const Editor = ({ socketRef, roomId, onCodeChange, onEditorReady }) => {
     const editorRef = useRef(null);
     useEffect(() => {
         async function init() {
@@ -21,6 +21,7 @@ const Editor = ({ socketRef, roomId, onCodeChange }) => {
                     lineNumbers: true,
                 }
             );
+            if (onEditorReady) onEditorReady(editorRef.current);
 
             editorRef.current.on('change', (instance, changes) => {
                 const { origin } = changes;
