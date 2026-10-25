@@ -152,6 +152,9 @@ const EditorPage = () => {
                         />
                     </div>
                     <h3>Connected</h3>
+                    <div className="currentUser" aria-label="Current user">
+                        You: {location.state?.username || 'Guest'}
+                    </div>
                     <div className="clientsList">
                         {clients.map((client) => (
                             <Client

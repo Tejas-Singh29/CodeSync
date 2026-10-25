@@ -123,6 +123,13 @@ footer a:hover {
     gap: 20px;
 }
 
+.currentUser {
+    margin: 10px 0 16px;
+    color: #4aed88;
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
 .client {
     display: flex;
     align-items: center;
