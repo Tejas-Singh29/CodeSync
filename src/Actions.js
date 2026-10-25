@@ -4,6 +4,8 @@ const ACTIONS = {
     DISCONNECTED: 'disconnected',
     CODE_CHANGE: 'code-change',
     SYNC_CODE: 'sync-code',
+    LANGUAGE_CHANGE: 'language-change',
+    LANGUAGE_UPDATE: 'language-update',
     LEAVE: 'leave',
 };
 

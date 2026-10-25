@@ -6,6 +6,8 @@ const path = require('path');
 const { Server } = require('socket.io');
 const ACTIONS = require('./src/Actions');
 const aiRouter = require('./server/routes/ai');
+const executeRouter = require('./server/routes/execute');
+const { SUPPORTED_LANGUAGES } = require('./server/services/judge0Service');
 
 const server = http.createServer(app);
 const io = new Server(server);
@@ -40,12 +42,18 @@ app.use((error, req, res, next) => {
     return next(error);
 });
 app.use('/api/ai', aiRouter);
+app.use('/api/execute', executeRouter);
 app.use(express.static('build'));
 app.use((req, res, next) => {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
 const userSocketMap = {};
+const roomLanguageMap = new Map();
+app.locals.getRoomLanguage = (roomId) => roomLanguageMap.get(roomId);
+app.locals.isRoomMember = (roomId, socketId) => Boolean(
+    socketId && io.sockets.adapter.rooms.get(roomId)?.has(socketId)
+);
 function getAllConnectedClients(roomId) {
     // Map
     return Array.from(io.sockets.adapter.rooms.get(roomId) || []).map(
@@ -62,6 +70,8 @@ io.on('connection', (socket) => {
     console.log('socket connected', socket.id);
 
     socket.on(ACTIONS.JOIN, ({ roomId, username }) => {
+        if (typeof roomId !== 'string' || !roomId.trim()) return;
+        if (!roomLanguageMap.has(roomId)) roomLanguageMap.set(roomId, 'cpp');
         userSocketMap[socket.id] = username;
         socket.join(roomId);
         const clients = getAllConnectedClients(roomId);
@@ -70,8 +80,15 @@ io.on('connection', (socket) => {
                 clients,
                 username,
                 socketId: socket.id,
+                language: roomLanguageMap.get(roomId),
             });
         });
+    });
+
+    socket.on(ACTIONS.LANGUAGE_CHANGE, ({ roomId, language }) => {
+        if (!socket.rooms.has(roomId) || !SUPPORTED_LANGUAGES.includes(language)) return;
+        roomLanguageMap.set(roomId, language);
+        io.to(roomId).emit(ACTIONS.LANGUAGE_UPDATE, { language });
     });
 
     socket.on(ACTIONS.CODE_CHANGE, ({ roomId, code }) => {
@@ -89,6 +106,7 @@ io.on('connection', (socket) => {
                 socketId: socket.id,
                 username: userSocketMap[socket.id],
             });
+            if (roomId !== socket.id && io.sockets.adapter.rooms.get(roomId)?.size <= 1) roomLanguageMap.delete(roomId);
         });
         delete userSocketMap[socket.id];
         socket.leave();
