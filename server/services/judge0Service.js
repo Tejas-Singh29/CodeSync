@@ -127,10 +127,24 @@ function resultFrom(body, config) {
     };
 }
 
-function providerError(message, status = 502) {
+function providerError(message, status = 502, code) {
     const error = new Error(message);
     error.status = status;
+    error.code = code;
     return error;
+}
+
+function responseError(response, action) {
+    if (response.status === 401 || response.status === 403) {
+        return providerError(
+            'Judge0 authentication failed. Check the server authentication settings.',
+            503,
+            'JUDGE0_AUTHENTICATION'
+        );
+    }
+    if (response.status === 400) return providerError(`Judge0 rejected the ${action}.`, 400, 'JUDGE0_INVALID_REQUEST');
+    if (response.status === 429) return providerError('Judge0 rate limit reached. Please try again later.', 429, 'JUDGE0_RATE_LIMIT');
+    return providerError('Judge0 is unavailable.', 502, 'JUDGE0_UNAVAILABLE');
 }
 
 async function execute({ language, sourceCode, stdin }) {
@@ -156,7 +170,7 @@ async function execute({ language, sourceCode, stdin }) {
         throw providerError(error.name === 'AbortError' ? 'Judge0 request timed out.' : 'Judge0 is unavailable.', 502);
     });
     const created = await readProviderResponse(create);
-    if (!create.ok) throw providerError('Judge0 rejected the submission.', create.status === 429 ? 429 : 502);
+    if (!create.ok) throw responseError(create, 'submission');
     const token = created.body.token;
     if (!token || typeof token !== 'string') throw providerError('Judge0 returned an invalid submission response.');
 
@@ -171,7 +185,7 @@ async function execute({ language, sourceCode, stdin }) {
             throw providerError(error.name === 'AbortError' ? 'Judge0 polling timed out.' : 'Judge0 is unavailable.', 502);
         });
         const result = await readProviderResponse(poll);
-        if (!poll.ok) throw providerError('Judge0 could not retrieve the submission result.', poll.status === 429 ? 429 : 502);
+        if (!poll.ok) throw responseError(poll, 'result request');
         const statusId = result.body.status?.id;
         if (statusId && statusId > 2) return resultFrom(result.body, config);
     }
@@ -183,4 +197,5 @@ module.exports = {
     SUPPORTED_LANGUAGES,
     execute,
     getConfig,
+    responseError,
 };

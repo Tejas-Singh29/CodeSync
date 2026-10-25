@@ -12,6 +12,21 @@ import {
     useParams,
 } from 'react-router-dom';
 
+export function getOutputSections(output) {
+    const sections = [];
+    const seen = new Set();
+    const add = (label, value) => {
+        if (typeof value !== 'string' || !value || seen.has(value)) return;
+        seen.add(value);
+        sections.push({ label, value });
+    };
+    add('Standard output', output?.stdout);
+    add('Standard error', output?.stderr);
+    add('Compilation output', output?.compileOutput);
+    add('Message', output?.message);
+    return sections;
+}
+
 const EditorPage = () => {
     const socketRef = useRef(null);
     const codeRef = useRef(null);
@@ -25,6 +40,7 @@ const EditorPage = () => {
     const [stdin, setStdin] = useState('');
     const [output, setOutput] = useState(null);
     const [running, setRunning] = useState(false);
+    const outputSections = getOutputSections(output);
 
     useEffect(() => {
         const init = async () => {
@@ -168,7 +184,15 @@ const EditorPage = () => {
                     <div className="outputPanel" aria-live="polite">
                         {output?.loading && 'Submitting to Judge0…'}
                         {output?.error && <span className="executionError">{output.error}</span>}
-                        {output && !output.loading && !output.error && <><strong>{output.status}</strong><pre>{output.stdout || output.stderr || output.compileOutput || output.message || '(no output)'}</pre></>}
+                        {output && !output.loading && !output.error && <>
+                            <strong>{output.status}</strong>
+                            {outputSections.length ? outputSections.map(({ label, value }) => (
+                                <section key={label} className="outputSection">
+                                    <strong>{label}</strong>
+                                    <pre>{value}</pre>
+                                </section>
+                            )) : <pre>(no output)</pre>}
+                        </>}
                     </div>
                 </div>
                 <Editor
