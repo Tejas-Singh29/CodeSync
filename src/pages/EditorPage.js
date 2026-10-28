@@ -187,10 +187,14 @@ const EditorPage = () => {
                     <button className="btn runBtn" onClick={runCode} disabled={!language || running}>{running ? 'Running…' : 'Run Code'}</button>
                     <textarea className="stdinBox" value={stdin} onChange={(event) => setStdin(event.target.value)} placeholder="Standard input (optional)" />
                     </div>
-                    <div className="outputPanel" aria-live="polite">
-                        {output?.loading && 'Submitting to Judge0…'}
-                        {output?.error && <span className="executionError">{output.error}</span>}
-                        {output && !output.loading && !output.error && <>
+                    {output && <div className="outputPanel" aria-live="polite">
+                        <div className="outputHeader">
+                            <span>Output</span>
+                            <button className="outputClose" type="button" onClick={() => setOutput(null)} aria-label="Close output panel">×</button>
+                        </div>
+                        {output.loading && 'Submitting to Judge0…'}
+                        {output.error && <span className="executionError">{output.error}</span>}
+                        {!output.loading && !output.error && <>
                             <strong>{output.status}</strong>
                             {outputSections.length ? outputSections.map(({ label, value }) => (
                                 <section key={label} className="outputSection">
@@ -199,7 +203,7 @@ const EditorPage = () => {
                                 </section>
                             )) : <pre>(no output)</pre>}
                         </>}
-                    </div>
+                    </div>}
                 </div>
                 <Editor
                     socketRef={socketRef}
