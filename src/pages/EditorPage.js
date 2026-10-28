@@ -125,9 +125,10 @@ const EditorPage = () => {
         if (!language || running) return;
         setRunning(true); setOutput({ loading: true });
         try {
+            const selectedCode = editorRef.current?.getSelection();
             const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || ''}/api/execute`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId, socketId: socketRef.current?.id, language, sourceCode: editorRef.current?.getValue() || '', stdin }),
+                body: JSON.stringify({ roomId, socketId: socketRef.current?.id, language, sourceCode: selectedCode || editorRef.current?.getValue() || '', stdin }),
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'Code execution failed.');
@@ -176,6 +177,7 @@ const EditorPage = () => {
             </div>
             <div className="editorWrap">
                 <div className="executionControls">
+                    <div className="executionToolbar">
                     <label>Language{' '}
                         <select value={language || ''} onChange={changeLanguage} disabled={!language}>
                             <option value="" disabled>Synchronizing…</option><option value="c">C</option><option value="cpp">C++</option>
@@ -184,6 +186,7 @@ const EditorPage = () => {
                     </label>
                     <button className="btn runBtn" onClick={runCode} disabled={!language || running}>{running ? 'Running…' : 'Run Code'}</button>
                     <textarea className="stdinBox" value={stdin} onChange={(event) => setStdin(event.target.value)} placeholder="Standard input (optional)" />
+                    </div>
                     <div className="outputPanel" aria-live="polite">
                         {output?.loading && 'Submitting to Judge0…'}
                         {output?.error && <span className="executionError">{output.error}</span>}

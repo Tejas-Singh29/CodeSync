@@ -51,9 +51,11 @@ app.use((req, res, next) => {
 const userSocketMap = {};
 const roomLanguageMap = new Map();
 app.locals.getRoomLanguage = (roomId) => roomLanguageMap.get(roomId);
-app.locals.isRoomMember = (roomId, socketId) => Boolean(
-    socketId && io.sockets.adapter.rooms.get(roomId)?.has(socketId)
-);
+app.locals.isRoomMember = (roomId, socketId) => {
+    if (typeof roomId !== 'string' || typeof socketId !== 'string') return false;
+    const memberSocket = io.sockets.sockets.get(socketId);
+    return Boolean(memberSocket?.rooms.has(roomId));
+};
 function getAllConnectedClients(roomId) {
     // Map
     return Array.from(io.sockets.adapter.rooms.get(roomId) || []).map(
